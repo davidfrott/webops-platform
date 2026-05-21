@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`❌ Cliente desconectado do WebSocket: ${socket.id}`);
+        console.log(`Cliente desconectado do WebSocket: ${socket.id}`);
     });
 });
 
