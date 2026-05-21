@@ -21,6 +21,7 @@ router.post('/', async (req, res) => {
     const { nome, integrantes, portaHost, repoGithub } = req.body;
     const ipServidor = '137.131.172.170'; 
     const dominioGerado = `app-${portaHost}.${ipServidor}.sslip.io`; 
+    
     try {
         const portaExiste = await Equipe.findOne({ portaHost });
         if (portaExiste) return res.status(400).json({ erro: 'Esta porta de host já está ocupada.' });
@@ -29,6 +30,9 @@ router.post('/', async (req, res) => {
             nome, integrantes, portaHost, repoGithub, dominio: dominioGerado, status: 'Building...'
         });
         await novaEquipe.save();
+
+        const listaAposCadastro = await Equipe.find();
+        if (req.io) req.io.emit('status_atualizado', listaAposCadastro);
 
         res.status(201).json({ mensagem: 'Cadastro realizado. Deploy iniciado em segundo plano.', equipe: novaEquipe });
 
@@ -40,6 +44,8 @@ router.post('/', async (req, res) => {
         exec(`git clone ${repoGithub} ${pastaDestino}`, async (erroClone) => {
             if (erroClone) {
                 await Equipe.findByIdAndUpdate(novaEquipe._id, { status: 'Offline' });
+                const listaErroClone = await Equipe.find();
+                if (req.io) req.io.emit('status_atualizado', listaErroClone);
                 return;
             }
 
@@ -50,12 +56,16 @@ router.post('/', async (req, res) => {
             }, { t: nomeImagem }, async (erroBuild, stream) => {
                 if (erroBuild) {
                     await Equipe.findByIdAndUpdate(novaEquipe._id, { status: 'Offline' });
+                    const listaErroBuild = await Equipe.find();
+                    if (req.io) req.io.emit('status_atualizado', listaErroBuild);
                     return;
                 }
 
                 docker.modem.followProgress(stream, async (erroProgress) => {
                     if (erroProgress) {
                         await Equipe.findByIdAndUpdate(novaEquipe._id, { status: 'Offline' });
+                        const listaErroProgress = await Equipe.find();
+                        if (req.io) req.io.emit('status_atualizado', listaErroProgress);
                         return;
                     }
 
@@ -76,8 +86,14 @@ router.post('/', async (req, res) => {
                             status: 'Online',
                             containerId: container.id 
                         });
+
+                        const listaSucesso = await Equipe.find();
+                        if (req.io) req.io.emit('status_atualizado', listaSucesso);
+
                     } catch (erroContainer) {
                         await Equipe.findByIdAndUpdate(novaEquipe._id, { status: 'Offline' });
+                        const listaErroContainer = await Equipe.find();
+                        if (req.io) req.io.emit('status_atualizado', listaErroContainer);
                     }
                 });
             });
@@ -97,7 +113,11 @@ router.put('/:id', async (req, res) => {
             { new: true }
         );
         if (!equipeAtualizada) return res.status(404).json({ erro: 'Equipe não encontrada.' });
-        res.json({ mensagem: 'Dados atualizados com sucesso!', equipe: equipeAtualizada });
+        
+        const listaAtualizada = await Equipe.find();
+        if (req.io) req.io.emit('status_atualizado', listaAtualizada);
+
+        res.json({ mensagem: 'Dados updated com sucesso!', equipe: equipeAtualizada });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar equipe.' });
     }
@@ -116,12 +136,18 @@ router.delete('/:id', async (req, res) => {
                 const container = docker.getContainer(equipe.containerId);
                 await container.stop();
                 await container.remove();
-            } catch (e) { console.log('Container não estava rodando ou já foi removido manualmente.'); }
+            } catch (e) { 
+                console.log('Container não estava rodando ou já foi removido manualmente.'); 
+            }
         }
 
         if (fs.existsSync(pastaDestino)) fs.rmSync(pastaDestino, { recursive: true, force: true });
 
         await Equipe.findByIdAndDelete(req.params.id);
+
+        const listaAposDeletar = await Equipe.find();
+        if (req.io) req.io.emit('status_atualizado', listaAposDeletar);
+
         res.json({ mensagem: 'Equipe, pasta e container deletados com sucesso!' });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao excluir equipe do sistema.' });
@@ -131,7 +157,9 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/logs', async (req, res) => {
     try {
         const equipe = await Equipe.findById(req.params.id);
-        if (!equipe || !equipe.containerId) return res.status(404).json({ erro: 'Logs indisponíveis ou container não criado.' });
+        if (!equipe || !equipe.containerId) {
+            return res.status(404).json({ erro: 'Logs indisponíveis ou container não criado.' });
+        }
 
         const container = docker.getContainer(equipe.containerId);
         
@@ -143,7 +171,14 @@ router.get('/:id/logs', async (req, res) => {
         }, (err, buffer) => {
             if (err) return res.status(500).json({ erro: 'Erro ao extrair logs do Docker.' });
             
-            res.json({ logs: buffer.toString('utf8') });
+            const logsLimpos = buffer.toString('utf8').replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
+                return (char === '\n' || char === '\r') ? char : '';
+            });
+
+            res.json({ 
+                equipe: equipe.nome,
+                logs: logsLimpos || 'Nenhum log gerado por este container até o momento.' 
+            });
         });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao processar logs.' });
