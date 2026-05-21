@@ -1,26 +1,16 @@
-# WebOps Platform - Gerenciador de Deploys & Monitoramento
+# React + Vite
 
-Uma plataforma completa de **WebOps** desenvolvida para automatizar a hospedagem, o build e o monitoramento em tempo real de containers Docker para projetos escolares/académicos na infraestrutura Oracle Cloud.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Funcionalidades Principais
+Currently, two official plugins are available:
 
-- **Automação Git:** O sistema aceita o link de um repositório GitHub e realiza o `git clone` automático no servidor local em `/var/www/`.
-- **Orquestração Docker:** Build automatizado de imagens customizadas e inicialização de containers isolados por porta utilizando a biblioteca **Dockerode**.
-- **Health Check Contínuo:** Verificação em background (via **Axios**) a cada 30 segundos para checar a saúde das aplicações das equipes.
-- **Visualização de Logs:** Endpoint integrado para capturar logs de erro diretamente dos containers sem precisar de acesso SSH.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Tecnologias Utilizadas
+## React Compiler
 
-- **Front-end:** React, Tailwind CSS, Lucide React
-- **Back-end:** Node.js, Express, Dockerode, Axios, Morgan
-- **Banco de Dados:** MongoDB (via Mongoose)
-- **Infraestrutura:** Docker, Linux Ubuntu, Oracle Cloud, sslip.io
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Estrutura do Projeto
+## Expanding the ESLint configuration
 
-```text
-webops-platform/
-├── backend/          # API Node.js, Rotas do Dockerode e Modelos do MongoDB
-├── frontend/         # Interface React com o Dashboard de monitoramento
-├── .gitignore        # Arquivos ignorados pelo Git
-└── README.md         # Documentação oficial do projeto
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
