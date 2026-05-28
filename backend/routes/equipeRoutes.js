@@ -19,8 +19,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
     const { nome, integrantes, portaHost, repoGithub } = req.body;
-    const ipServidor = '137.131.172.170'; 
-    const dominioGerado = `app-${portaHost}.${ipServidor}.sslip.io`; 
+    const seuDuckDNS = 'projeto-webops.duckdns.org';
+    const nomePasta = nome.toLowerCase().replace(/\s+/g, '-');
+    const dominioGerado = `${nomePasta}.${seuDuckDNS}`;
+    const pastaDestino = path.join('/var/www', nomePasta);
     
     try {
         const portaExiste = await Equipe.findOne({ portaHost });
